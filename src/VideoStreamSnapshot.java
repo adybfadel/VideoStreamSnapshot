@@ -16,8 +16,9 @@ public class VideoStreamSnapshot extends Thread {
 	private static final String CUSTOMER = "CUSTOMER";
 	private static final String OPERATOR = "OPERATOR";
 	private static final String URL_VIDEO_STREAM = "/usr/local/WowzaStreamingEngine/content/sonyGuru";
-	private static List<String> listStreams = new ArrayList<String>();
-	private static SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:MM:ss");
+	private static List<String> listCustomers = new ArrayList<String>();
+	private static List<String> listOperators = new ArrayList<String>();
+	private static SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
 
 	public VideoStreamSnapshot(String audioSream, String type) {
 		this.videoStream = audioSream;
@@ -47,9 +48,12 @@ public class VideoStreamSnapshot extends Thread {
 					if (!fileName.endsWith(".mp4") || fileName.indexOf("_") > -1)
 						continue;
 					fileName = fileName.replace(".mp4", "");
-					if (!listStreams.contains(fileName)) {
-						listStreams.add(fileName);
+					if (!listCustomers.contains(fileName)) {
+						listCustomers.add(fileName);
 						new VideoStreamSnapshot(fileName, CUSTOMER).start();
+					}
+					if (!listOperators.contains(fileName)) {
+						listOperators.add(fileName);
 						new VideoStreamSnapshot(fileName, OPERATOR).start();
 					}
 				}
@@ -68,21 +72,35 @@ public class VideoStreamSnapshot extends Thread {
 		String urlVideo = "rtsp://localhost:1935/sonyGuru/" + videoStream;
 		String urlImgCons = "/usr/share/tomcat7/webapps/sonyguru/imgs/" + videoStream + "_%1d.jpg";
 		String urlImgOper = "/usr/share/tomcat7/webapps/sonyguru/imgs/" + videoStream + "_op.jpg";
-		String command = String.format("sudo /opt/ffmpeg/ffmpeg -y -i %s -f image2 -vf fps=fps=1/10 %s", urlVideo, urlImgCons);
+		String command = String.format("/opt/ffmpeg/ffmpeg -y -i %s -f image2 -vf fps=fps=1/10 %s", urlVideo, urlImgCons);
 		if (OPERATOR.equals(type))
-			command = String.format("sudo /opt/ffmpeg/ffmpeg -y -i %s -f image2 -vf fps=fps=3/1 -update 1 %s", urlVideo, urlImgOper);
+			command = String.format("/opt/ffmpeg/ffmpeg -y -i %s -f image2 -vf fps=fps=3/1 -update 1 %s", urlVideo, urlImgOper);
 
 		try {
 			System.out.println(String.format("[%s] Snapshoting: %s (%s)", sdf.format(new Date()), videoStream, type));
 			Process process = Runtime.getRuntime().exec(command);
-			process.waitFor();
+			if (CUSTOMER.equals(type)) {
+				Thread.sleep(60000);
+				process.destroy();
+			} else {
+				process.waitFor();
+			}
 			pigeonhole(videoStream);
 			System.out.println(String.format("[%s] Finished: %s (%s)", sdf.format(new Date()), videoStream, type));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		
-		listStreams.remove(videoStream);
+		if (CUSTOMER.equals(type)) {
+			try {
+				Thread.sleep(120000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			listCustomers.remove(videoStream);
+		} else {
+			listOperators.remove(videoStream);
+		}
 	}
 	
 	private void pigeonhole(final String filter) {
