@@ -74,33 +74,22 @@ public class VideoStreamSnapshot extends Thread {
 		String urlImgOper = "/usr/share/tomcat7/webapps/sonyguru/imgs/" + videoStream + "_op.jpg";
 		String command = String.format("/opt/ffmpeg/ffmpeg -y -i %s -f image2 -vf fps=fps=1/10 %s", urlVideo, urlImgCons);
 		if (OPERATOR.equals(type))
-			command = String.format("/opt/ffmpeg/ffmpeg -y -i %s -f image2 -vf fps=fps=3/1 -update 1 %s", urlVideo, urlImgOper);
+			command = String.format("/opt/ffmpeg/ffmpeg -y -i %s -f image2 -vf fps=fps=2/1 -update 1 %s", urlVideo, urlImgOper);
 
 		try {
-			System.out.println(String.format("[%s] Snapshoting: %s (%s)", sdf.format(new Date()), videoStream, type));
+			System.out.println(String.format("[%s] Snapshoting: %s (%s) - %s", sdf.format(new Date()), videoStream, type, command));
 			Process process = Runtime.getRuntime().exec(command);
-			if (CUSTOMER.equals(type)) {
-				Thread.sleep(60000);
-				process.destroy();
-			} else {
-				process.waitFor();
-			}
+			process.waitFor();
 			pigeonhole(videoStream);
 			System.out.println(String.format("[%s] Finished: %s (%s)", sdf.format(new Date()), videoStream, type));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		
-		if (CUSTOMER.equals(type)) {
-			try {
-				Thread.sleep(120000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-			listCustomers.remove(videoStream);
-		} else {
+		if (OPERATOR.equals(type))
 			listOperators.remove(videoStream);
-		}
+		else
+			listCustomers.remove(videoStream);
 	}
 	
 	private void pigeonhole(final String filter) {
@@ -122,10 +111,14 @@ public class VideoStreamSnapshot extends Thread {
 		for (File file: files) {
 			if (!file.isDirectory()) {
 				try {
-					// Soh copia o arquivo principal
-					if (file.getName().equals(filter + ".mp4"))
-						copyFile(file, new File(URL_VIDEO_STREAM + "/bkp/" + file.getName()));
-					file.delete();
+					// So copia o arquivo principal
+					if (file.getName().equals(filter + "_android.mp4")) {
+						String dest = URL_VIDEO_STREAM + "/bkp/" + file.getName();
+						System.out.println("Copying " + file.getName() + " to " + dest);
+						copyFile(file, new File(dest));
+					}
+					boolean del = file.delete();
+					System.out.println("Removing " + file.getName() + " - " + del);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
