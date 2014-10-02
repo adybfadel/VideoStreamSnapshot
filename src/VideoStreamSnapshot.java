@@ -79,7 +79,12 @@ public class VideoStreamSnapshot extends Thread {
 		try {
 			System.out.println(String.format("[%s] Snapshoting: %s (%s) - %s", sdf.format(new Date()), videoStream, type, command));
 			Process process = Runtime.getRuntime().exec(command);
-			process.waitFor();
+			if (CUSTOMER.equals(type)) {
+				Thread.sleep(60000);
+				process.destroy();
+			} else {
+				process.waitFor();
+			}
 			pigeonhole(videoStream);
 			System.out.println(String.format("[%s] Finished: %s (%s)", sdf.format(new Date()), videoStream, type));
 		} catch (Exception e) {
