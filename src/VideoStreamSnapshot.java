@@ -74,7 +74,7 @@ public class VideoStreamSnapshot extends Thread {
 		String urlImgOper = "/usr/share/tomcat7/webapps/sonyguru/imgs/" + videoStream + "_op.jpg";
 		String command = String.format("/opt/ffmpeg/ffmpeg -y -i %s -f image2 -vf fps=fps=1/10 %s", urlVideo, urlImgCons);
 		if (OPERATOR.equals(type))
-			command = String.format("/opt/ffmpeg/ffmpeg -y -i %s -f image2 -vf fps=fps=2/1 -update 1 %s", urlVideo, urlImgOper);
+			command = String.format("/opt/ffmpeg/ffmpeg -y -i %s -f image2 -vf fps=fps=1/1 -update 1 %s", urlVideo, urlImgOper);
 
 		try {
 			System.out.println(String.format("[%s] Snapshoting: %s (%s) - %s", sdf.format(new Date()), videoStream, type, command));

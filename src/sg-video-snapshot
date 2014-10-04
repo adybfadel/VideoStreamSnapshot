@@ -1,0 +1,25 @@
+#! /bin/bash
+#
+# /etc/init.d/sg-video-snapshot
+ 
+case "$1" in
+    start)
+        echo "Iniciando VideoStreamSnapshot do SonyGuru..."
+        java -jar /opt/sonyguru/VideoStreamSnapshot.jar & echo $! > /opt/sonyguru/sg-video-snapshot.pid
+        ;;
+ 
+    stop)
+        echo "Parando VideoStreamSnapshot do SonyGuru..."
+        kill `cat /opt/sonyguru/sg-video-snapshot.pid`
+        ;;
+ 
+    restart)
+        echo "Reiniciando VideoStreamSnapshot do SonyGuru..."
+        kill `cat /opt/sonyguru/sg-video-snapshot.pid`
+	    java -jar /opt/sonyguru/VideoStreamSnapshot.jar & echo $! > /opt/sonyguru/sg-video-snapshot.pid
+        ;;
+ 
+    *)
+        echo "Opção inválida"
+        ;;
+esac
