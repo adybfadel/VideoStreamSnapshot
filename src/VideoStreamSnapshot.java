@@ -12,11 +12,14 @@ import java.util.List;
 
 public class VideoStreamSnapshot extends Thread {
 
-	private String type;
-	private String videoStream;
 	private static final String CUSTOMER = "CUSTOMER";
 	private static final String OPERATOR = "OPERATOR";
 	private static final String URL_VIDEO_STREAM = "/usr/local/WowzaStreamingEngine/content/sonyGuru";
+	private static final String LOG_FILE_NAME = "/opt/sonyguru/VideoStreamSnapshot.log";
+	private static final long LOG_FILE_SIZE = 5000000;
+	
+	private String type;
+	private String videoStream;
 	private static List<String> listCustomers = new ArrayList<String>();
 	private static List<String> listOperators = new ArrayList<String>();
 	private static SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
@@ -32,9 +35,12 @@ public class VideoStreamSnapshot extends Thread {
 
 		if (args.length == 0 || !"-v".equals(args[0])) {
 			try {
-				logFile = new File("/opt/sonyguru/VideoStreamSnapshot.log");
-				if (!logFile.exists())
+				logFile = new File(LOG_FILE_NAME);
+				if (logFile.exists()) {
+					copyFile(logFile, new File(logFile.getAbsolutePath().replace(".log", "_" + logFile.lastModified() + ".log")));
+					logFile.delete();
 					logFile.createNewFile();
+				}
 				System.setOut(new PrintStream(logFile));
 			} catch (Exception e) {
 				System.out.println("Error opening log file: " + logFile.getAbsolutePath());
@@ -43,7 +49,7 @@ public class VideoStreamSnapshot extends Thread {
 		}
 		
 		try {
-			log(String.format("[%s] Video snapshoting started...", sdf.format(new Date())));
+			log("Video snapshoting started...");
 			Runtime.getRuntime().exec("sudo su");
 		} catch (Exception e1) {
 			e1.printStackTrace();
@@ -72,7 +78,7 @@ public class VideoStreamSnapshot extends Thread {
 						new VideoStreamSnapshot(fileName, CUSTOMER).start();
 					}
 				}
-				Thread.sleep(15000);
+				Thread.sleep(120000);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -82,8 +88,8 @@ public class VideoStreamSnapshot extends Thread {
 	}
 	
 	private static void log(String log) {
-		System.out.println(log);
-		if (logFile != null && logFile.length() >= 5000000) {
+		System.out.println(String.format("[%s] %s", sdf.format(new Date()), log));
+		if (logFile != null && logFile.length() >= LOG_FILE_SIZE) {
 			try {
 				copyFile(logFile, new File(logFile.getAbsolutePath().replace(".log", "_" + System.currentTimeMillis() + ".log")));
 				logFile.delete();
@@ -105,7 +111,7 @@ public class VideoStreamSnapshot extends Thread {
 			command = String.format("/opt/ffmpeg/ffmpeg -y -i %s -f image2 -vf fps=fps=2/1 -update 1 %s", urlVideo, urlImgOper);
 
 		try {
-			log(String.format("[%s] Snapshoting: %s (%s)", sdf.format(new Date()), videoStream, type));
+			log(String.format("Snapshoting: %s (%s)", videoStream, type));
 			while (true) {
 				Process process = Runtime.getRuntime().exec(command);
 				File streamFile = new File(URL_VIDEO_STREAM + "/" + videoStream + ".mp4");
@@ -113,7 +119,7 @@ public class VideoStreamSnapshot extends Thread {
 				Thread.sleep(60000);
 				process.destroy();
 				if (CUSTOMER.equals(type)) {
-					log(String.format("[%s] Stoped: %s (%s)", sdf.format(new Date()), videoStream, type));
+					log(String.format("Stoped: %s (%s)", videoStream, type));
 					Thread.sleep(120000);
 					// Verifica se ainda esta ativo antes de arquivoar
 					if (streamFile.length() == lastLength) {
