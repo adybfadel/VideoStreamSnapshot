@@ -23,6 +23,7 @@ public class VideoStreamSnapshot extends Thread {
 	private static List<String> listCustomers = new ArrayList<String>();
 	private static List<String> listOperators = new ArrayList<String>();
 	private static SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+	private static SimpleDateFormat sdfBkp = new SimpleDateFormat("dd-MM-yyyy_HH-mm");
 	
 	private static File logFile = null;
 
@@ -149,7 +150,7 @@ public class VideoStreamSnapshot extends Thread {
 				try {
 					// So copia o arquivo principal
 					if (file.getName().equals(filter + ".mp4")) {
-						String dest = URL_VIDEO_STREAM + "/bkp/" + file.getName().replace(".mp4", "_" + file.lastModified() + ".mp4");
+						String dest = URL_VIDEO_STREAM + "/bkp/" + file.getName().replace(".mp4", "_" + sdfBkp.format(new Date()) + "_" + file.lastModified() + ".mp4");
 						log("Filing " + file.getName());
 						copyFile(file, new File(dest));
 					}
