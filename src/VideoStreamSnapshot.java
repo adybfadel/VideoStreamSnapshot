@@ -79,7 +79,7 @@ public class VideoStreamSnapshot extends Thread {
 						new VideoStreamSnapshot(fileName, CUSTOMER).start();
 					}
 				}
-				Thread.sleep(120000);
+				Thread.sleep(3000);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -121,7 +121,7 @@ public class VideoStreamSnapshot extends Thread {
 				process.destroy();
 				if (CUSTOMER.equals(type)) {
 					log(String.format("Stoped: %s (%s)", videoStream, type));
-					Thread.sleep(120000);
+					Thread.sleep(60000);
 					// Verifica se ainda esta ativo antes de arquivoar
 					if (streamFile.length() == lastLength) {
 						log(videoStream + " streaming ended...");
