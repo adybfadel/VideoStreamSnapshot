@@ -1,7 +1,6 @@
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.channels.FileChannel;
@@ -23,7 +22,6 @@ public class VideoStreamSnapshot extends Thread {
 	private static List<String> listCustomers = new ArrayList<String>();
 	private static List<String> listOperators = new ArrayList<String>();
 	private static SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
-	private static SimpleDateFormat sdfBkp = new SimpleDateFormat("dd-MM-yyyy_HH-mm");
 	
 	private static File logFile = null;
 
@@ -79,7 +77,7 @@ public class VideoStreamSnapshot extends Thread {
 						new VideoStreamSnapshot(fileName, CUSTOMER).start();
 					}
 				}
-				Thread.sleep(3000);
+				Thread.sleep(5000);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -109,27 +107,14 @@ public class VideoStreamSnapshot extends Thread {
 		String urlImgOper = "/usr/share/tomcat7/webapps/sonyguru/imgs/" + videoStream + "_op.jpg";
 		String command = String.format("/opt/ffmpeg/ffmpeg -y -i %s -f image2 -vf fps=fps=1/10 %s", urlVideo, urlImgCons);
 		if (OPERATOR.equals(type))
-			command = String.format("/opt/ffmpeg/ffmpeg -y -i %s -f image2 -vf fps=fps=2/1 -update 1 %s", urlVideo, urlImgOper);
+			command = String.format("/opt/ffmpeg/ffmpeg -y -i %s -f image2 -vf fps=fps=1/1 -update 1 %s", urlVideo, urlImgOper);
 
 		try {
-			log(String.format("Snapshoting: %s (%s)", videoStream, type));
-			while (true) {
-				Process process = Runtime.getRuntime().exec(command);
-				File streamFile = new File(URL_VIDEO_STREAM + "/" + videoStream + ".mp4");
-				long lastLength = streamFile.length();
-				Thread.sleep(60000);
-				process.destroy();
-				if (CUSTOMER.equals(type)) {
-					log(String.format("Stoped: %s (%s)", videoStream, type));
-					Thread.sleep(60000);
-					// Verifica se ainda esta ativo antes de arquivoar
-					if (streamFile.length() == lastLength) {
-						log(videoStream + " streaming ended...");
-						pigeonhole(videoStream);
-					}
-					break;
-				}
-			}
+//			log(String.format("Snapshoting: %s (%s)", videoStream, type));
+			Process process = Runtime.getRuntime().exec(command);
+			Thread.sleep(60000);
+			process.destroy();
+//			log(String.format("Finished: %s (%s)", videoStream, type));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -140,30 +125,6 @@ public class VideoStreamSnapshot extends Thread {
 			listCustomers.remove(videoStream);
 	}
 	
-	
-	private void pigeonhole(final String filter) {
-		
-		File dir = new File(URL_VIDEO_STREAM);
-		File[] files = dir.listFiles(new FileFilter(filter));
-		for (File file: files) {
-			if (!file.isDirectory()) {
-				try {
-					// So copia o arquivo principal
-					if (file.getName().equals(filter + ".mp4")) {
-						String dest = URL_VIDEO_STREAM + "/bkp/" + file.getName().replace(".mp4", "_" + sdfBkp.format(new Date()) + "_" + file.lastModified() + ".mp4");
-						log("Filing " + file.getName());
-						copyFile(file, new File(dest));
-					}
-					boolean del = file.delete();
-					log("Removing " + file.getName() + " - " + del);
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-		
-	}
-
     public static void copyFile(File source, File destination) throws IOException {
         if (destination.exists())
             destination.delete();
@@ -185,23 +146,4 @@ public class VideoStreamSnapshot extends Thread {
        }
     }
     
-    private class FileFilter implements FilenameFilter {
-    	
-    	private String prefix;
-    	
-    	public FileFilter(String prefix) {
-    		this.prefix = prefix;
-    	}
-    	
-    	public boolean accept(File dir, String name) {
-			String lowercaseName = name.toLowerCase();
-			if (lowercaseName.startsWith(prefix.toLowerCase()) && lowercaseName.endsWith(".mp4")) {
-				return true;
-			} else {
-				return false;
-			}
-		}
-    	
-    }
-	
 }
