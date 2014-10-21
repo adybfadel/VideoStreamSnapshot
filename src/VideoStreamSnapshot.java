@@ -13,7 +13,7 @@ import java.util.List;
 public class VideoStreamSnapshot extends Thread {
 
 	private static final String CUSTOMER = "CUSTOMER";
-	private static final String OPERATOR = "OPERATOR";
+//	private static final String OPERATOR = "OPERATOR";
 	private static final String URL_VIDEO_STREAM = "/usr/local/WowzaStreamingEngine/content/sonyGuru";
 	private static final String LOG_FILE_NAME = "/opt/sonyguru/VideoStreamSnapshot.log";
 	private static final long LOG_FILE_SIZE = 5000000;
@@ -21,7 +21,7 @@ public class VideoStreamSnapshot extends Thread {
 	private String type;
 	private String videoStream;
 	private static List<String> listCustomers = new ArrayList<String>();
-	private static List<String> listOperators = new ArrayList<String>();
+//	private static List<String> listOperators = new ArrayList<String>();
 	private static SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
 	
 	private static File logFile = null;
@@ -69,16 +69,16 @@ public class VideoStreamSnapshot extends Thread {
 					if (!fileName.endsWith(".mp4") || fileName.indexOf("_") > -1)
 						continue;
 					fileName = fileName.replace(".mp4", "");
-					if (!listOperators.contains(fileName)) {
-						listOperators.add(fileName);
-						new VideoStreamSnapshot(fileName, OPERATOR).start();
-					}
+//					if (!listOperators.contains(fileName)) {
+//						listOperators.add(fileName);
+//						new VideoStreamSnapshot(fileName, OPERATOR).start();
+//					}
 					if (!listCustomers.contains(fileName)) {
 						listCustomers.add(fileName);
 						new VideoStreamSnapshot(fileName, CUSTOMER).start();
 					}
 				}
-				Thread.sleep(120000);
+				Thread.sleep(60000);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -105,10 +105,10 @@ public class VideoStreamSnapshot extends Thread {
 
 		String urlVideo = "rtsp://localhost:1935/sonyGuru/" + videoStream;
 		String urlImgCons = "/usr/share/tomcat7/webapps/sonyguru/imgs/" + videoStream + "_%1d.jpg";
-		String urlImgOper = "/usr/share/tomcat7/webapps/sonyguru/imgs/" + videoStream + "_op.jpg";
+//		String urlImgOper = "/usr/share/tomcat7/webapps/sonyguru/imgs/" + videoStream + "_op.jpg";
 		String command = String.format("/opt/ffmpeg/ffmpeg -y -i %s -f image2 -vf fps=fps=1/10 %s", urlVideo, urlImgCons);
-		if (OPERATOR.equals(type))
-			command = String.format("/opt/ffmpeg/ffmpeg -y -i %s -f image2 -vf fps=fps=2/1 -update 1 %s", urlVideo, urlImgOper);
+//		if (OPERATOR.equals(type))
+//			command = String.format("/opt/ffmpeg/ffmpeg -y -i %s -f image2 -vf fps=fps=2/1 -update 1 %s", urlVideo, urlImgOper);
 
 		try {
 			log(String.format("Snapshoting: %s (%s)", videoStream, type));
@@ -120,7 +120,7 @@ public class VideoStreamSnapshot extends Thread {
 				process.destroy();
 				if (CUSTOMER.equals(type)) {
 					log(String.format("Stoped: %s (%s)", videoStream, type));
-					Thread.sleep(120000);
+					Thread.sleep(60000);
 					// Verifica se ainda esta ativo antes de arquivoar
 					if (streamFile.length() == lastLength) {
 						log(videoStream + " streaming ended...");
@@ -133,9 +133,9 @@ public class VideoStreamSnapshot extends Thread {
 			e.printStackTrace();
 		}
 		
-		if (OPERATOR.equals(type))
-			listOperators.remove(videoStream);
-		else
+//		if (OPERATOR.equals(type))
+//			listOperators.remove(videoStream);
+//		else
 			listCustomers.remove(videoStream);
 	}
 	
