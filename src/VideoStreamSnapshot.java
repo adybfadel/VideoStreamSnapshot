@@ -1,7 +1,6 @@
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.channels.FileChannel;
@@ -12,23 +11,20 @@ import java.util.List;
 
 public class VideoStreamSnapshot extends Thread {
 
-	private static final String CUSTOMER = "CUSTOMER";
-//	private static final String OPERATOR = "OPERATOR";
 	private static final String URL_VIDEO_STREAM = "/usr/local/WowzaStreamingEngine/content/sonyGuru";
 	private static final String LOG_FILE_NAME = "/opt/sonyguru/VideoStreamSnapshot.log";
 	private static final long LOG_FILE_SIZE = 5000000;
+	private static final long SNAPSHOT_INTERVAL = 30000;
 	
-	private String type;
+	private int idx = 1;
 	private String videoStream;
-	private static List<String> listCustomers = new ArrayList<String>();
-//	private static List<String> listOperators = new ArrayList<String>();
+	private static List<String> streamList = new ArrayList<String>();
 	private static SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
 	
 	private static File logFile = null;
 
-	public VideoStreamSnapshot(String audioSream, String type) {
+	public VideoStreamSnapshot(String audioSream) {
 		this.videoStream = audioSream;
-		this.type = type;
 	}
 
 	public static void main(String[] args) {
@@ -69,16 +65,12 @@ public class VideoStreamSnapshot extends Thread {
 					if (!fileName.endsWith(".mp4") || fileName.indexOf("_") > -1)
 						continue;
 					fileName = fileName.replace(".mp4", "");
-//					if (!listOperators.contains(fileName)) {
-//						listOperators.add(fileName);
-//						new VideoStreamSnapshot(fileName, OPERATOR).start();
-//					}
-					if (!listCustomers.contains(fileName)) {
-						listCustomers.add(fileName);
-						new VideoStreamSnapshot(fileName, CUSTOMER).start();
+					if (!streamList.contains(fileName)) {
+						streamList.add(fileName);
+						new VideoStreamSnapshot(fileName).start();
 					}
 				}
-				Thread.sleep(60000);
+				Thread.sleep(SNAPSHOT_INTERVAL); // Espera igual periodo para prox. snapshot
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -104,65 +96,29 @@ public class VideoStreamSnapshot extends Thread {
 	public void run() {
 
 		String urlVideo = "rtsp://localhost:1935/sonyGuru/" + videoStream;
-		String urlImgCons = "/usr/share/tomcat7/webapps/sonyguru/imgs/" + videoStream + "_%1d.jpg";
-//		String urlImgOper = "/usr/share/tomcat7/webapps/sonyguru/imgs/" + videoStream + "_op.jpg";
-		String command = String.format("/opt/ffmpeg/ffmpeg -y -i %s -f image2 -vf fps=fps=1/10 %s", urlVideo, urlImgCons);
-//		if (OPERATOR.equals(type))
-//			command = String.format("/opt/ffmpeg/ffmpeg -y -i %s -f image2 -vf fps=fps=2/1 -update 1 %s", urlVideo, urlImgOper);
+		String urlImgCons = "/usr/share/tomcat7/webapps/sonyguru/imgs/" + videoStream;
 
 		try {
-			log(String.format("Snapshoting: %s (%s)", videoStream, type));
 			while (true) {
+				log(String.format("Snapshot: %s", videoStream));
+				
+				String command = String.format("/opt/ffmpeg/ffmpeg -y -i %s -vf thumbnail=10 -frames:v 1 %s_%s.jpg", urlVideo, urlImgCons, idx++);
 				Process process = Runtime.getRuntime().exec(command);
-				File streamFile = new File(URL_VIDEO_STREAM + "/" + videoStream + ".mp4");
-				long lastLength = streamFile.length();
-				Thread.sleep(60000);
-				process.destroy();
-				if (CUSTOMER.equals(type)) {
-					log(String.format("Stoped: %s (%s)", videoStream, type));
-					Thread.sleep(60000);
-					// Verifica se ainda esta ativo antes de arquivoar
-					if (streamFile.length() == lastLength) {
-						log(videoStream + " streaming ended...");
-						pigeonhole(videoStream);
-					}
-					break;
+				process.waitFor();
+				
+				Thread.sleep(SNAPSHOT_INTERVAL); // Espera igual periodo para prox. snapshot
+				
+				if (idx > 6) {
+					idx = 1;
 				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		
-//		if (OPERATOR.equals(type))
-//			listOperators.remove(videoStream);
-//		else
-			listCustomers.remove(videoStream);
+		streamList.remove(videoStream);
 	}
 	
-	
-	private void pigeonhole(final String filter) {
-		
-		File dir = new File(URL_VIDEO_STREAM);
-		File[] files = dir.listFiles(new FileFilter(filter));
-		for (File file: files) {
-			if (!file.isDirectory()) {
-				try {
-					// So copia o arquivo principal
-					if (file.getName().equals(filter + ".mp4")) {
-						String dest = URL_VIDEO_STREAM + "/bkp/" + file.getName().replace(".mp4", "_" + file.lastModified() + ".mp4");
-						log("Filing " + file.getName());
-						copyFile(file, new File(dest));
-					}
-					boolean del = file.delete();
-					log("Removing " + file.getName() + " - " + del);
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-		
-	}
-
     public static void copyFile(File source, File destination) throws IOException {
         if (destination.exists())
             destination.delete();
@@ -183,24 +139,4 @@ public class VideoStreamSnapshot extends Thread {
                 destinationChannel.close();
        }
     }
-    
-    private class FileFilter implements FilenameFilter {
-    	
-    	private String prefix;
-    	
-    	public FileFilter(String prefix) {
-    		this.prefix = prefix;
-    	}
-    	
-    	public boolean accept(File dir, String name) {
-			String lowercaseName = name.toLowerCase();
-			if (lowercaseName.startsWith(prefix.toLowerCase()) && lowercaseName.endsWith(".mp4")) {
-				return true;
-			} else {
-				return false;
-			}
-		}
-    	
-    }
-	
 }
