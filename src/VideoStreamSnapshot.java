@@ -11,7 +11,7 @@ import java.util.List;
 
 public class VideoStreamSnapshot extends Thread {
 
-	private static final String URL_VIDEO_STREAM = "/usr/local/WowzaStreamingEngine/content/sonyGuru";
+	private static final String URL_VIDEO_STREAM = "/media/ebs1/video";
 	private static final String LOG_FILE_NAME = "/opt/sonyguru/VideoStreamSnapshot.log";
 	private static final long LOG_FILE_SIZE = 5000000;
 	private static final long SNAPSHOT_INTERVAL = 30000;
